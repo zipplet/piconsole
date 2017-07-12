@@ -1,4 +1,4 @@
-# piconsole - The Raspberry Pi retro videogame console project
+## piconsole - The Raspberry Pi retro videogame console project
 
   Copyright (C) 2017  Michael Andrew Nixon
 
