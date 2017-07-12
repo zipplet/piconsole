@@ -858,6 +858,7 @@ begin
       if _settings.gpio_useresetbutton then begin
         if not gpiodriver.readPin(_settings.gpio_resetbutton) then begin
           // Wait for 10ms and read again to debounce
+          sleep(10);
           if not gpiodriver.readPin(_settings.gpio_resetbutton) then begin
             // Reset button - try to kill retroarch nicely so it saves SRAM/etc
             CloseRetroarch;
