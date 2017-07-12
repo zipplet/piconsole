@@ -32,9 +32,56 @@ uses
 
 var
   gpiodriver: trpiGPIO;
-  process: tprocess;
   i: longint;
+  
+{ --------------------------------------------------------------------------- 
+  Close Retroarch nicely if running
+  --------------------------------------------------------------------------- }
+procedure CloseRetroarch;
+var
+  process: tprocess;
+begin
+  writeln('Trying to kill retroarch nicely if it is running');
+  try
+    process := tprocess.Create(nil);
+    process.executable := '/usr/bin/killall';
+    process.parameters.add('-s');
+    process.parameters.add('SIGTERM');
+    process.parameters.add('retroarch');
+    process.execute;
+    process.WaitOnExit;
+    freeandnil(process);
+  except
+    on e: exception do begin
+      writeln('Exception while trying to stop retroarch: ' + e.message);
+      end;
+  end;
+end;
 
+{ --------------------------------------------------------------------------- 
+  Begin system shutdown
+  --------------------------------------------------------------------------- }
+procedure StartShutdown;
+var
+  process: tprocess;
+begin
+  try
+    process := tprocess.Create(nil);
+    process.executable := '/sbin/poweroff';
+    process.execute;
+    process.WaitOnExit;
+    freeandnil(process);
+    exit;
+  except
+    on e: exception do begin
+      writeln('Exception while trying to shutdown: ' + e.message);
+    end;
+  end;
+end;
+
+{ --------------------------------------------------------------------------- 
+  Main program
+  --------------------------------------------------------------------------- }
 begin
   try
     writeln('piconsole - Copyright (C) 2017  Michael Andrew Nixon');
@@ -680,6 +727,59 @@ begin
         writeln('copy of the Program in return for a fee.');
         writeln;
         writeln('                     END OF TERMS AND CONDITIONS');
+        writeln;
+        writeln('            How to Apply These Terms to Your New Programs');
+        writeln;
+        writeln('  If you develop a new program, and you want it to be of the greatest');
+        writeln('possible use to the public, the best way to achieve this is to make it');
+        writeln('free software which everyone can redistribute and change under these terms.');
+        writeln;
+        writeln('  To do so, attach the following notices to the program.  It is safest');
+        writeln('to attach them to the start of each source file to most effectively');
+        writeln('state the exclusion of warranty; and each file should have at least');
+        writeln('the "copyright" line and a pointer to where the full notice is found.');
+        writeln;
+        writeln('    {one line to give the program''s name and a brief idea of what it does.}');
+        writeln('    Copyright (C) {year}  {name of author}');
+        writeln;
+        writeln('    This program is free software: you can redistribute it and/or modify');
+        writeln('    it under the terms of the GNU General Public License as published by');
+        writeln('    the Free Software Foundation, either version 3 of the License, or');
+        writeln('    (at your option) any later version.');
+        writeln;
+        writeln('    This program is distributed in the hope that it will be useful,');
+        writeln('    but WITHOUT ANY WARRANTY; without even the implied warranty of');
+        writeln('    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the');
+        writeln('    GNU General Public License for more details.');
+        writeln;
+        writeln('    You should have received a copy of the GNU General Public License');
+        writeln('    along with this program.  If not, see <http://www.gnu.org/licenses/>.');
+        writeln;
+        writeln('Also add information on how to contact you by electronic and paper mail.');
+        writeln;
+        writeln('  If the program does terminal interaction, make it output a short');
+        writeln('notice like this when it starts in an interactive mode:');
+        writeln;
+        writeln('    {project}  Copyright (C) {year}  {fullname}');
+        writeln('    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w''.');
+        writeln('    This is free software, and you are welcome to redistribute it');
+        writeln('    under certain conditions; type `show c'' for details.');
+        writeln;
+        writeln('The hypothetical commands `show w'' and `show c'' should show the appropriate');
+        writeln('parts of the General Public License.  Of course, your program''s commands');
+        writeln('might be different; for a GUI interface, you would use an "about box".');
+        writeln;
+        writeln('  You should also get your employer (if you work as a programmer) or school,');
+        writeln('if any, to sign a "copyright disclaimer" for the program, if necessary.');
+        writeln('For more information on this, and how to apply and follow the GNU GPL, see');
+        writeln('<http://www.gnu.org/licenses/>.');
+        writeln;
+        writeln('  The GNU General Public License does not permit incorporating your program');
+        writeln('into proprietary programs.  If your program is a subroutine library, you');
+        writeln('may consider it more useful to permit linking proprietary applications with');
+        writeln('the library.  If this is what you want to do, use the GNU Lesser General');
+        writeln('Public License instead of this License.  But first, please read');
+        writeln('<http://www.gnu.org/philosophy/why-not-lgpl.html>.');
         exit;
       end else begin
         _settings.configfile := paramstr(1);
@@ -745,38 +845,13 @@ begin
           gpiodriver.shutdown;
           freeandnil(gpiodriver);
           writeln('Done');
-          // Reset button - try to kill retroarch nicely so it saves SRAM/etc
-          writeln('Trying to kill retroarch nicely if it is running');
-          try
-            process := tprocess.Create(nil);
-            process.executable := '/usr/bin/killall';
-            process.parameters.add('-s');
-            process.parameters.add('SIGTERM');
-            process.parameters.add('retroarch');
-            process.execute;
-            process.WaitOnExit;
-            freeandnil(process);
-          except
-            on e: exception do begin
-              writeln('Exception while trying to stop retroarch: ' + e.message);
-            end;
-          end;
+          CloseRetroarch;
           writeln('Waiting...');
           sleep(5000);
           write('Starting shutdown process: ');
-          try
-            process := tprocess.Create(nil);
-            process.executable := '/sbin/poweroff';
-            process.execute;
-            process.WaitOnExit;
-            freeandnil(process);
-            writeln('Done');
-            exit;
-          except
-            on e: exception do begin
-              writeln('Exception while trying to shutdown: ' + e.message);
-            end;
-          end;
+          StartShutdown;
+          writeln('Done');
+          exit;
         end;
       end;
       // Reset button request?
@@ -785,20 +860,7 @@ begin
           // Wait for 10ms and read again to debounce
           if not gpiodriver.readPin(_settings.gpio_resetbutton) then begin
             // Reset button - try to kill retroarch nicely so it saves SRAM/etc
-            try
-              process := tprocess.Create(nil);
-              process.executable := '/usr/bin/killall';
-              process.parameters.add('-s');
-              process.parameters.add('SIGTERM');
-              process.parameters.add('retroarch');
-              process.execute;
-              process.WaitOnExit;
-              freeandnil(process);
-            except
-              on e: exception do begin
-                writeln('Exception while trying to stop retroarch: ' + e.message);
-              end;
-            end;
+            CloseRetroarch;
             // Now wait for it to be released
             i := 10;
             while (i > 0) do begin
