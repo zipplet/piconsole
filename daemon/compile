@@ -1,0 +1,8 @@
+#!/bin/sh
+./clean
+
+COMMONOPTS="-Sd -XX"
+FPC="fpc"
+RPIIO="../libs/rpiio"
+
+$FPC $COMMONOPTS -Fu${RPIIO} -Fi ${RPIIO} piconsole.dpr

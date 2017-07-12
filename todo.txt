@@ -1,0 +1,30 @@
+Misc
+----
+
+- Add tool that disables annoying hotkeys (e.g. start+select = quit game) each
+  time a new controller is configured if the reset button option is in use.
+
+
+Daemon
+------
+
+- Add installer that asks questions and generates the config file properly
+- Autodetect Pi version to avoid setting it in config.ini
+- Installer should install it properly w/ godaemon
+- Add documentation
+
+
+Microcontroller firmware
+------------------------
+
+- Add ATTINY firmware (Atmel Studio project)
+- Add ATMega firmware w/ fan PWN (Arduino project)
+- Add documentation
+
+
+Schematics
+----------
+
+- Add single rail ATTINY version (5V rail)
+- Add dual rail ATTINY version (for PS1/PSX PSU usage)
+- Add single rail ATMega version (5V rail)

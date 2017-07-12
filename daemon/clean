@@ -1,0 +1,5 @@
+#!/bin/sh
+rm piconsole > /dev/null 2>&1
+rm *.ppu > /dev/null 2>&1
+rm *.o > /dev/null 2>&1
+
