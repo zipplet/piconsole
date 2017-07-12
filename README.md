@@ -33,6 +33,7 @@ by providing:
   * Compilation only tested and supported under free pascal 3.
   * piconsole requires the rpiio library.
   * This is available under my GitHub account at https://github.com/zipplet/rpiio
+  * Supplied with and designed to be used with a copy of godaemon (godaemontask) built for ARMv6
 
 
 ## Coming soon
