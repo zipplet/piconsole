@@ -16,9 +16,21 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-## Dependencies
+## What is this?
 
-* piconsole:
+A collection of software (for the Raspberry Pi), firmware (for microcontrollers)
+and schematics to allow you to build a retro videogames console, designed to be
+used alongside RetroPie - https://retropie.org.uk/ - to enhance the experience
+by providing:
+
+* Clean power-up and shutdown sequence for the Raspberry Pi system
+* Reset button support to back-out of a running game without needing a hotkey
+
+
+## Dependencies / compiler information
+
+* piconsole (daemon for Raspberry Pi):
+  * Compilation only tested and supported under free pascal 3.
   * piconsole requires the rpiio library.
   * This is available under my GitHub account at https://github.com/zipplet/rpiio
 
