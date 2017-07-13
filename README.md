@@ -34,6 +34,7 @@ by providing:
   * piconsole requires the rpiio library.
   * This is available under my GitHub account at https://github.com/zipplet/rpiio
   * Supplied with and designed to be used with a copy of godaemon (godaemontask) built for ARMv6
+  * godaemon is also one of my projects and the source can be found at https://github.com/zipplet/godaemon
 
 * firmware / ATTINY85 (firmware for the control PCB without fan PWM):
   * Compiles with Atmel Studio 7.0
