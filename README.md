@@ -26,6 +26,8 @@ by providing:
 * Clean power-up and shutdown sequence for the Raspberry Pi system
 * Reset button support to back-out of a running game without needing a hotkey
 
+See it in action here, being constructed inside an old PlayStation: https://www.youtube.com/playlist?list=PLqM2eWK6z3M0DvGwcI3AX9BVud6s98hcG
+
 
 ## Dependencies / compiler information
 
