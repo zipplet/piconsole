@@ -35,10 +35,13 @@ by providing:
   * This is available under my GitHub account at https://github.com/zipplet/rpiio
   * Supplied with and designed to be used with a copy of godaemon (godaemontask) built for ARMv6
 
+* firmware / ATTINY85 (firmware for the control PCB without fan PWM):
+  * Compiles with Atmel Studio 7.0
+  * Should also fit on the smaller ATTINY chips (the code compiles to <2KB)
 
 ## Coming soon
 
-* Microcontroller firmware
+* More microcontroller firmware
 * Schematics
 * Installer/etc
 * See todo.txt for more information
