@@ -136,6 +136,10 @@ begin
         raise exception.Create('controller / groupname is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
         exit;
       end;
+      if not directoryexists(_settings.controller_configdir) then begin
+        raise exception.Create('Error: The controller configuration directory does not exist: ' + _settings.controller_configdir);
+        exit;
+      end;
     end;
 
     freeandnil(inifile);
