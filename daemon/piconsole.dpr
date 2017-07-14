@@ -28,14 +28,19 @@ uses
   unix,
   baseunix,
   rpigpio,
+  lcore,
+  lcoreselect,
+  btime,
   unitconfig in 'unitconfig.pas';
 
 var
   gpiodriver: trpiGPIO;
   i: longint;
+  lasttime: tunixtimeint;
 
 { ---------------------------------------------------------------------------
-  Fixup controller configurations
+  Fixup controller configurations saved by RetroPie to disable unwanted
+  hotkeys that the user does not desire.
   --------------------------------------------------------------------------- }
 procedure FixControllerConfigurations;
 var
@@ -141,6 +146,30 @@ begin
 end;
 
 { ---------------------------------------------------------------------------
+  Check if any controller configuration files have been modified since <ts>,
+  and if they have fix them.
+  --------------------------------------------------------------------------- }
+procedure CheckConfigurationChangesSince(ts: tunixtimeint);
+var
+  fileinfo: tsearchrec;
+  needfix: boolean;
+begin
+  needfix := false;
+  if FindFirst(_settings.controller_configdir + '/*.cfg', faAnyFile, fileinfo) = 0 then begin
+    repeat
+      if fileinfo.time >= ts then begin
+        needfix := true;
+      end;
+    until FindNext(fileinfo) <> 0;
+  end;
+  FindClose(fileinfo);
+  if needfix then begin
+    writeln('Found changed controller configuration files.');
+    FixControllerConfigurations;
+  end;
+end;
+
+{ ---------------------------------------------------------------------------
   Close Retroarch nicely if running
   --------------------------------------------------------------------------- }
 procedure CloseRetroarch;
@@ -190,6 +219,7 @@ end;
   --------------------------------------------------------------------------- }
 begin
   try
+    lcoreinit;
     writeln('piconsole - Copyright (C) 2017  Michael Andrew Nixon');
     writeln('This program comes with ABSOLUTELY NO WARRANTY; for details type ''--warranty''.');
     writeln('This is free software, and you are welcome to redistribute it');
@@ -942,8 +972,20 @@ begin
       writeln('Monitoring the reset button.');
     end;
 
+    lasttime := unixtimeint;
+
     repeat
       sleep(50);
+      // Are we regularly checking for configuration changes?
+      if _settings.controller_disablehotkeys then begin
+        if _settings.controller_fix_regularly then begin
+          if (unixtimeint - lasttime) >= _settings.controller_check_interval then begin
+            // A check is due
+            CheckConfigurationChangesSince(lasttime);
+            lasttime := unixtimeint;
+          end;
+        end;
+      end;
       // Shutdown request?
       if gpiodriver.readPin(_settings.gpio_powerdown) then begin
         // Wait for another 10ms and read again to be certain

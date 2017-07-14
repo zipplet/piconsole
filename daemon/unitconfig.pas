@@ -55,6 +55,8 @@ type
     controller_disable_reset_button: boolean;
     controller_fix_at_boot: boolean;
     controller_fix_at_shutdown: boolean;
+    controller_fix_regularly: boolean;
+    controller_check_interval: longint;
   end;
 
 var
@@ -101,6 +103,8 @@ begin
     _settings.controller_disable_reset_button := inifile.ReadBool('controller', 'disable_reset_button', false);
     _settings.controller_fix_at_boot := inifile.ReadBool('controller', 'fix_at_boot', false);
     _settings.controller_fix_at_shutdown := inifile.ReadBool('controller', 'fix_at_shutdown', false);
+    _settings.controller_fix_regularly := inifile.ReadBool('controller', 'fix_regularly', false);
+    _settings.controller_check_interval := inifile.ReadInteger('controller', 'check_interval', -1);
 
     // Now validate them
     if _settings.system_ondelay = -1 then begin
@@ -122,6 +126,10 @@ begin
     if _settings.controller_disablehotkeys then begin
       if _settings.controller_configdir = '' then begin
         raise exception.Create('controller / configdir is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+        exit;
+      end;
+      if _settings.controller_fix_regularly and (_settings.controller_check_interval = -1) then begin
+        raise exception.Create('controller / check_interval is missing (if you do not want to use this functionality, set controller / fix_regularly to 0)');
         exit;
       end;
       if not directoryexists(_settings.controller_configdir) then begin

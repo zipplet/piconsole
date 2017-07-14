@@ -4,5 +4,6 @@
 COMMONOPTS="-Sd -XX"
 FPC="fpc"
 RPIIO="../libs/rpiio"
+LCORE="../libs/lcore"
 
-$FPC $COMMONOPTS -Fu${RPIIO} -Fi ${RPIIO} piconsole.dpr
+$FPC $COMMONOPTS -Fu${RPIIO} -Fi ${RPIIO} -Fu${LCORE} -Fi ${LCORE} piconsole.dpr
