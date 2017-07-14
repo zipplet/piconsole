@@ -1,7 +1,7 @@
 { ----------------------------------------------------------------------------
   piconsole - The Raspberry Pi retro videogame console project
   Copyright (C) 2017  Michael Andrew Nixon
-  
+
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -14,7 +14,7 @@
 
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  
+
   Contact: zipplet@zipplet.co.uk
 
   Main project file
@@ -33,8 +33,23 @@ uses
 var
   gpiodriver: trpiGPIO;
   i: longint;
-  
-{ --------------------------------------------------------------------------- 
+
+{ ---------------------------------------------------------------------------
+  Fixup controller configurations
+  --------------------------------------------------------------------------- }
+procedure FixControllerConfigurations;
+begin
+  {
+    controller_disable_load_state_button          -> input_load_state_btn
+    controller_disable_save_state_button          -> input_save_state_btn
+    controller_disable_exit_emulator_button       -> input_exit_emulator_btn
+    controller_disable_state_slot_decrease_button -> input_state_slot_decrease_btn
+    controller_disable_state_slot_increase_button -> input_state_slot_increase_btn
+    controller_disable_reset_button               -> input_reset_btn
+  }
+end;
+
+{ ---------------------------------------------------------------------------
   Close Retroarch nicely if running
   --------------------------------------------------------------------------- }
 procedure CloseRetroarch;
@@ -806,7 +821,6 @@ begin
 
     write('Power-up pin: ');
     gpiodriver.setPinMode(_settings.gpio_powerup, RPIGPIO_OUTPUT);
-    gpiodriver.setPin(_settings.gpio_powerup);
     writeln('Done');
 
     write('Power-down pin: ');
@@ -821,6 +835,11 @@ begin
       writeln('Done');
     end else begin
       writeln('Not in use');
+    end;
+
+    // Fixup controller configurations at boot if requested
+    if _settings.controller_disablehotkeys and _settings.controller_fix_at_boot then begin
+      FixControllerConfigurations;
     end;
 
     write('Notifying the microcontroller that we have booted: ');
@@ -841,6 +860,10 @@ begin
         if gpiodriver.readPin(_settings.gpio_powerdown) then begin
           // Yep, shutdown request.
           writeln('*** Shutdown request received ***');
+          // Fixup controller configurations at shutdown if requested
+          if _settings.controller_disablehotkeys and _settings.controller_fix_at_shutdown then begin
+            FixControllerConfigurations;
+          end;
           write('Shutting down GPIO driver: ');
           gpiodriver.shutdown;
           freeandnil(gpiodriver);

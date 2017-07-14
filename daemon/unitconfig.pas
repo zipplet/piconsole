@@ -43,6 +43,20 @@ type
     gpio_powerdown: longint;
     gpio_useresetbutton: boolean;
     gpio_resetbutton: longint;
+
+    // controller
+    controller_disablehotkeys: boolean;
+    controller_configdir: ansistring;
+    controller_username: ansistring;
+    controller_groupname: ansistring;
+    controller_disable_load_state_button: boolean;
+    controller_disable_save_state_button: boolean;
+    controller_disable_exit_emulator_button: boolean;
+    controller_disable_state_slot_decrease_button: boolean;
+    controller_disable_state_slot_increase_button: boolean;
+    controller_disable_reset_button: boolean;
+    controller_fix_at_boot: boolean;
+    controller_fix_at_shutdown: boolean;
   end;
 
 var
@@ -79,6 +93,19 @@ begin
     _settings.gpio_useresetbutton := inifile.ReadBool('gpio', 'useresetbutton', false);
     _settings.gpio_resetbutton := inifile.ReadInteger('gpio', 'resetbutton', -1);
 
+    _settings.controller_disablehotkeys := inifile.ReadBool('controller', 'disablehotkeys', false);
+    _settings.controller_configdir := inifile.ReadString('controller', 'configdir', '');
+    _settings.controller_username := inifile.ReadString('controller', 'username', '');
+    _settings.controller_groupname := inifile.ReadString('controller', 'groupname', '');
+    _settings.controller_disable_load_state_button := inifile.ReadBool('controller', 'disable_load_state_button', false);
+    _settings.controller_disable_save_state_button := inifile.ReadBool('controller', 'disable_save_state_button', false);
+    _settings.controller_disable_exit_emulator_button := inifile.ReadBool('controller', 'disable_exit_emulator_button', false);
+    _settings.controller_disable_state_slot_decrease_button := inifile.ReadBool('controller', 'disable_state_slot_decrease_button', false);
+    _settings.controller_disable_state_slot_increase_button := inifile.ReadBool('controller', 'disable_state_slot_increase_button', false);
+    _settings.controller_disable_reset_button := inifile.ReadBool('controller', 'disable_reset_button', false);
+    _settings.controller_fix_at_boot := inifile.ReadBool('controller', 'fix_at_boot', false);
+    _settings.controller_fix_at_shutdown := inifile.ReadBool('controller', 'fix_at_shutdown', false);
+
     // Now validate them
     if _settings.system_ondelay = -1 then begin
       raise exception.Create('system / ondelay is missing');
@@ -95,6 +122,20 @@ begin
     if (_settings.gpio_useresetbutton = true) and (_settings.gpio_resetbutton = -1) then begin
       raise exception.Create('gpio / resetbutton is missing (if you do not want to use the reset button, set useresetbutton to 0)');
       exit;
+    end;
+    if _settings.controller_disablehotkeys then begin
+      if _settings.controller_configdir = '' then begin
+        raise exception.Create('controller / configdir is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+        exit;
+      end;
+      if _settings.controller_username = '' then begin
+        raise exception.Create('controller / username is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+        exit;
+      end;
+      if _settings.controller_groupname = '' then begin
+        raise exception.Create('controller / groupname is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+        exit;
+      end;
     end;
 
     freeandnil(inifile);
