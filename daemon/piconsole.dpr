@@ -40,10 +40,13 @@ var
 procedure FixControllerConfigurations;
 var
   fileinfo: tsearchrec;
-  infile, outfile: textfile;
+  infile: textfile;
+  binfile: file;
   s: ansistring;
   sl: tstringlist;
-  i: longint;
+  sl2: tstringlist;
+  i, x: longint;
+  lineending: byte;
 begin
   writeln('Scanning for and fixing controller configuration files in ' + _settings.controller_configdir + '...');
   sl := tstringlist.create;
@@ -65,10 +68,11 @@ begin
       if s <> '# piconsole modified' then begin
         // Needs fixing!
         write('fixing...');
-        filemode := fmOpenWrite;
-        assignfile(outfile, sl.strings[i] + '.new');
-        rewrite(outfile);
-        writeln(outfile, '# piconsole modified');
+        // First read the entire file into a stringlist altering as necessary
+        sl2 := tstringlist.create;
+        sl2.add('# piconsole modified');
+        // Make sure to re-add the first line!
+        sl2.add(s);
         while not eof(infile) do begin
           readln(infile, s);
           if _settings.controller_disable_load_state_button then begin
@@ -101,30 +105,24 @@ begin
               s := '#' + s;
             end;
           end;
-          writeln(outfile, s);
+          sl2.add(s);
         end;
+        // Now truncate the file and write the new contents - this keeps the
+        // ownership/etc the same
         closefile(infile);
-        closefile(outfile);
-        // Delete old configuration...
-        if not deletefile(sl.strings[i]) then begin
-          writeln('error deleting old configuration');
-          // Delete new configuration
-          deletefile(sl.strings[i] + '.new');
-        end else begin
-          // Move new configuration into place
-          if not renamefile(sl.strings[i] + '.new', sl.strings[i]) then begin
-            writeln('error moving new configuration');
-          end else begin
-            if fpchown(sl.strings[i], _settings.controller_userid, _settings.controller_groupid) <> 0 then begin
-              writeln('error setting uid/gid (error in uid/gid ID number?), deleting instead for safety');
-              // Delete the configuration instead, as it is owned by root...
-              // Configuration is lost, but this is safer than it being unchangeable!
-              deletefile(sl.strings[i]);
-            end else begin
-              writeln('patched');
-            end;
-          end;
+        filemode := fmOpenReadWrite;
+        assignfile(binfile, sl.strings[i]);
+        reset(binfile, 1);
+        truncate(binfile);
+        lineending := 10;
+        for x := 0 to sl2.count - 1 do begin
+          s := sl2.strings[x];
+          blockwrite(binfile, s[1], length(s));
+          blockwrite(binfile, lineending, 1);
         end;
+        closefile(binfile);
+        freeandnil(sl2);
+        writeln('patched');
       end else begin
         writeln('already fixed');
       end;
@@ -132,7 +130,6 @@ begin
       on e: exception do begin
         writeln('Exception processing controller configuration: ' + e.message);
         closefile(infile);
-        closefile(outfile);
         if assigned(sl) then begin
           freeandnil(sl);
         end;
