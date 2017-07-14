@@ -1,8 +1,7 @@
 Misc
 ----
 
-- Add tool that disables annoying hotkeys (e.g. start+select = quit game) each
-  time a new controller is configured if the reset button option is in use.
+- Fix controller config files at times other than startup/shutdown
 
 
 Daemon
