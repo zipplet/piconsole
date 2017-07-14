@@ -38,15 +38,109 @@ var
   Fixup controller configurations
   --------------------------------------------------------------------------- }
 procedure FixControllerConfigurations;
+var
+  fileinfo: tsearchrec;
+  infile, outfile: textfile;
+  s: ansistring;
+  sl: tstringlist;
+  i: longint;
 begin
-  {
-    controller_disable_load_state_button          -> input_load_state_btn
-    controller_disable_save_state_button          -> input_save_state_btn
-    controller_disable_exit_emulator_button       -> input_exit_emulator_btn
-    controller_disable_state_slot_decrease_button -> input_state_slot_decrease_btn
-    controller_disable_state_slot_increase_button -> input_state_slot_increase_btn
-    controller_disable_reset_button               -> input_reset_btn
-  }
+  writeln('Scanning for and fixing controller configuration files in ' + _settings.controller_configdir + '...');
+  sl := tstringlist.create;
+  if FindFirst(_settings.controller_configdir + '/*.cfg', faAnyFile, fileinfo) = 0 then begin
+    repeat
+      sl.add(_settings.controller_configdir + '/' + fileinfo.name);
+    until FindNext(fileinfo) <> 0;
+  end;
+  FindClose(fileinfo);
+
+  for i := 0 to sl.count - 1 do begin
+    write('[' + sl.strings[i] + ']: checking...');
+    try
+      filemode := fmOpenRead;
+      assignfile(infile, sl.strings[i]);
+      reset(infile);
+      // Check if the first line is our "processing done" marker
+      readln(infile, s);
+      if s <> '# piconsole modified' then begin
+        // Needs fixing!
+        write('fixing...');
+        filemode := fmOpenWrite;
+        assignfile(outfile, sl.strings[i] + '.new');
+        rewrite(outfile);
+        writeln(outfile, '# piconsole modified');
+        while not eof(infile) do begin
+          readln(infile, s);
+          if _settings.controller_disable_load_state_button then begin
+            if pos('input_load_state_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          if _settings.controller_disable_save_state_button then begin
+            if pos('input_save_state_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          if _settings.controller_disable_exit_emulator_button then begin
+            if pos('input_exit_emulator_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          if _settings.controller_disable_state_slot_decrease_button then begin
+            if pos('input_state_slot_decrease_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          if _settings.controller_disable_state_slot_increase_button then begin
+            if pos('input_state_slot_increase_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          if _settings.controller_disable_reset_button then begin
+            if pos('input_reset_', s) > 0 then begin
+              s := '#' + s;
+            end;
+          end;
+          writeln(outfile, s);
+        end;
+        closefile(infile);
+        closefile(outfile);
+        // Delete old configuration...
+        if not deletefile(sl.strings[i]) then begin
+          writeln('error deleting old configuration');
+          // Delete new configuration
+          deletefile(sl.strings[i] + '.new');
+        end else begin
+          // Move new configuration into place
+          if not renamefile(sl.strings[i] + '.new', sl.strings[i]) then begin
+            writeln('error moving new configuration');
+          end else begin
+            if fpchown(sl.strings[i], _settings.controller_userid, _settings.controller_groupid) <> 0 then begin
+              writeln('error setting uid/gid (error in uid/gid ID number?), deleting instead for safety');
+              // Delete the configuration instead, as it is owned by root...
+              // Configuration is lost, but this is safer than it being unchangeable!
+              deletefile(sl.strings[i]);
+            end else begin
+              writeln('patched');
+            end;
+          end;
+        end;
+      end else begin
+        writeln('already fixed');
+      end;
+    except
+      on e: exception do begin
+        writeln('Exception processing controller configuration: ' + e.message);
+        closefile(infile);
+        closefile(outfile);
+        if assigned(sl) then begin
+          freeandnil(sl);
+        end;
+      end;
+    end;
+  end;
+
+  freeandnil(sl);
 end;
 
 { ---------------------------------------------------------------------------
@@ -805,6 +899,11 @@ begin
       exit;
     end;
 
+    // Fixup controller configurations at boot if requested
+    if _settings.controller_disablehotkeys and _settings.controller_fix_at_boot then begin
+      FixControllerConfigurations;
+    end;
+
     // Initialise GPIO driver
     gpiodriver := trpiGPIO.Create;
     if not gpiodriver.initialise(_settings.system_newpi) then begin
@@ -837,11 +936,6 @@ begin
       writeln('Not in use');
     end;
 
-    // Fixup controller configurations at boot if requested
-    if _settings.controller_disablehotkeys and _settings.controller_fix_at_boot then begin
-      FixControllerConfigurations;
-    end;
-
     write('Notifying the microcontroller that we have booted: ');
     gpiodriver.setPin(_settings.gpio_powerup);
     writeln('Done');
@@ -860,10 +954,6 @@ begin
         if gpiodriver.readPin(_settings.gpio_powerdown) then begin
           // Yep, shutdown request.
           writeln('*** Shutdown request received ***');
-          // Fixup controller configurations at shutdown if requested
-          if _settings.controller_disablehotkeys and _settings.controller_fix_at_shutdown then begin
-            FixControllerConfigurations;
-          end;
           write('Shutting down GPIO driver: ');
           gpiodriver.shutdown;
           freeandnil(gpiodriver);
@@ -871,6 +961,10 @@ begin
           CloseRetroarch;
           writeln('Waiting...');
           sleep(5000);
+          // Fixup controller configurations at shutdown if requested
+          if _settings.controller_disablehotkeys and _settings.controller_fix_at_shutdown then begin
+            FixControllerConfigurations;
+          end;
           write('Starting shutdown process: ');
           StartShutdown;
           writeln('Done');

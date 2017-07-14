@@ -47,8 +47,8 @@ type
     // controller
     controller_disablehotkeys: boolean;
     controller_configdir: ansistring;
-    controller_username: ansistring;
-    controller_groupname: ansistring;
+    controller_userid: longint;
+    controller_groupid: longint;
     controller_disable_load_state_button: boolean;
     controller_disable_save_state_button: boolean;
     controller_disable_exit_emulator_button: boolean;
@@ -95,8 +95,8 @@ begin
 
     _settings.controller_disablehotkeys := inifile.ReadBool('controller', 'disablehotkeys', false);
     _settings.controller_configdir := inifile.ReadString('controller', 'configdir', '');
-    _settings.controller_username := inifile.ReadString('controller', 'username', '');
-    _settings.controller_groupname := inifile.ReadString('controller', 'groupname', '');
+    _settings.controller_userid := inifile.ReadInteger('controller', 'userid', -1);
+    _settings.controller_groupid := inifile.ReadInteger('controller', 'groupid', -1);
     _settings.controller_disable_load_state_button := inifile.ReadBool('controller', 'disable_load_state_button', false);
     _settings.controller_disable_save_state_button := inifile.ReadBool('controller', 'disable_save_state_button', false);
     _settings.controller_disable_exit_emulator_button := inifile.ReadBool('controller', 'disable_exit_emulator_button', false);
@@ -128,12 +128,12 @@ begin
         raise exception.Create('controller / configdir is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
         exit;
       end;
-      if _settings.controller_username = '' then begin
-        raise exception.Create('controller / username is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+      if _settings.controller_userid = -1 then begin
+        raise exception.Create('controller / userid is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
         exit;
       end;
-      if _settings.controller_groupname = '' then begin
-        raise exception.Create('controller / groupname is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
+      if _settings.controller_groupid = -1 then begin
+        raise exception.Create('controller / groupid is missing (if you do not want to use this functionality, set controller / disablehotkeys to 0)');
         exit;
       end;
       if not directoryexists(_settings.controller_configdir) then begin
