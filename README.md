@@ -33,8 +33,8 @@ See it in action here, being constructed inside an old PlayStation: https://www.
 
 * piconsole (daemon for Raspberry Pi):
   * Compilation only tested and supported under free pascal 3.
-  * piconsole requires the rpiio library.
-  * This is available under my GitHub account at https://github.com/zipplet/rpiio
+  * Requires the rpiio library - https://github.com/zipplet/rpiio
+  * Requires the lcore library - https://github.com/zipplet/lcore
   * Supplied with and designed to be used with a copy of godaemon (godaemontask) built for ARMv6
   * godaemon is also one of my projects and the source can be found at https://github.com/zipplet/godaemon
 
