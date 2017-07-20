@@ -37,12 +37,17 @@ uses
 
 const
   DEFAULT_CONFIGFILE_NAME = 'config.ini';
+
   SYSTEM_LED_PATH = '/sys/class/leds/';
-  SYSTEM_LED_BRIGHTNESS = 'brightness';
-  DUALSHOCK4_LED_SEARCH_MASK = '0005:054C:09CC.*';
-  DUALSHOCK4_RED_LED = ':red';
-  DUALSHOCK4_GREEN_LED = ':green';
-  DUALSHOCK4_BLUE_LED = ':blue';
+  SYSTEM_POWER_PATH = '/sys/class/power_supply/';
+
+  DUALSHOCK4_RED_LED = ':red/brightness';
+  DUALSHOCK4_GREEN_LED = ':green/brightness';
+  DUALSHOCK4_BLUE_LED = ':blue/brightness';
+  DUALSHOCK4_BATTERY_SEARCH_MASK = 'sony_controller_battery_*';
+  DUALSHOCK4_BATTERY_CHARGE = '/capacity';
+  DUALSHOCK4_REAL_DEVICE = '/device';
+
   BUTTON_POLL_INTERVAL = 50;
 
 var

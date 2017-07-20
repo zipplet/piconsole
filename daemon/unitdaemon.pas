@@ -41,15 +41,20 @@ type
       gpiodriver: trpiGPIO;
       buttonCheckTimer: tltimer;
       configCheckTimer: tltimer;
+      DS4CheckTimer: tltimer;
       lastConfigCheckTime: tunixtimeint;
+      DS4BlinkState: boolean;
 
       // Timer events
+      procedure DS4CheckTimerEvent(Sender: TObject);
       procedure ButtonCheckTimerEvent(Sender: TObject);
       procedure ConfigCheckTimerEvent(Sender: TObject);
 
       procedure CheckConfigurationChangesSince(ts: tunixtimeint);
       procedure CloseRetroarch;
       procedure StartShutdown;
+      procedure PollDualshock4Controllers;
+      procedure SetDualshock4Color(deviceName: ansistring; red, green, blue: longint);
     public
       procedure FixControllerConfigurationFiles;
 
@@ -61,6 +66,131 @@ type
 implementation
 
 uses process, unitglobal;
+
+{ ---------------------------------------------------------------------------
+  Set the colour of a DualShock 4 lightbar to the given RGB values.
+  --------------------------------------------------------------------------- }
+procedure tdaemon.SetDualshock4Color(deviceName: ansistring; red, green, blue: longint);
+var
+  t: textfile;
+begin
+  filemode := fmOpenWrite;
+  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_RED_LED);
+  rewrite(t);
+  writeln(t, inttostr(red));
+  closefile(t);
+
+  filemode := fmOpenWrite;
+  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_GREEN_LED);
+  rewrite(t);
+  writeln(t, inttostr(green));
+  closefile(t);
+
+  filemode := fmOpenWrite;
+  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_BLUE_LED);
+  rewrite(t);
+  writeln(t, inttostr(blue));
+  closefile(t);
+end;
+
+{ ---------------------------------------------------------------------------
+  Called to poll DualShock 4 controllers.
+  We will set the correct lightbar colours on each controller.
+  --------------------------------------------------------------------------- }
+procedure tdaemon.PollDualshock4Controllers;
+var
+  fileinfo: tsearchrec;
+  s, fullpath: ansistring;
+  t: textfile;
+  batteryCharge: longint;
+  realDevice: ansistring;
+  i: longint;
+  lowBattery: boolean;
+  fastTimer: boolean;
+begin
+  // Toggle blink state
+  if self.DS4BlinkState then begin
+    self.DS4BlinkState := false;
+  end else begin
+    self.DS4BlinkState := true;
+  end;
+
+  fastTimer := false;
+
+  if FindFirst(SYSTEM_POWER_PATH + DUALSHOCK4_BATTERY_SEARCH_MASK, faDirectory, fileinfo) = 0 then begin
+    repeat
+      try
+        // Get the battery charge of each controller, plus the real device name
+        fullpath := SYSTEM_POWER_PATH + fileinfo.name + DUALSHOCK4_BATTERY_CHARGE;
+        filemode := fmOpenRead;
+        assignfile(t, fullpath);
+        reset(t);
+        readln(t, s);
+        closefile(t);
+        batteryCharge := strtoint(s);
+        fullpath := SYSTEM_POWER_PATH + fileinfo.name + DUALSHOCK4_REAL_DEVICE;
+        s := fpReadLink(fullpath);
+        realDevice := '';
+        // We need to hunt backwards for the '/'
+        for i := length(s) downto 1 do begin
+          if s[i] = '/' then begin
+            realDevice := copy(s, i + 1, length(s) - i);
+            break;
+          end;
+        end;
+        if realDevice <> '' then begin
+          // We have the device name in <realDevice> and charge in <batteryCharge>
+          lowBattery := false;
+          if _settings.dualshock4_battery_low_warning then begin
+            if batteryCharge <= _settings.dualshock4_battery_warning_below then begin
+              lowBattery := true;
+              fastTimer := true;
+            end;
+          end;
+          if self.DS4BlinkState and lowBattery then begin
+            self.SetDualshock4Color(realDevice,
+                                    _settings.dualshock4_battery_low_color_red,
+                                    _settings.dualshock4_battery_low_color_green,
+                                    _settings.dualshock4_battery_low_color_blue);
+          end else begin
+            self.SetDualshock4Color(realDevice,
+                                    _settings.dualshock4_static_color_red,
+                                    _settings.dualshock4_static_color_green,
+                                    _settings.dualshock4_static_color_blue);
+          end;
+        end;
+      except
+        on e: exception do begin
+          closefile(t);
+          // Swallow the exception. Maybe dump debugging output, but I don't
+          // want to fill the RAM disk or wear out the SD card.
+        end;
+      end;
+    until FindNext(fileinfo) <> 0;
+  end;
+  FindClose(fileinfo);
+
+  if fastTimer then begin
+    // Increase timer poll rate temporarily to allow LED flashing
+    // Yes I could use more timers, but this works.
+    self.DS4CheckTimer.interval := _settings.dualshock4_battery_low_blinkrate;
+  end else begin
+    // Increase timer poll rate as we have no controllers with a low battery
+    self.DS4CheckTimer.interval := _settings.dualshock4_poll_interval * 1000;
+  end;
+end;
+
+{ ---------------------------------------------------------------------------
+  Timer: Check DualShock 4 battery levels and set lightbar colours
+  --------------------------------------------------------------------------- }
+procedure tdaemon.DS4CheckTimerEvent(Sender: TObject);
+begin
+  self.DS4CheckTimer.enabled := false;
+
+  self.PollDualshock4Controllers;
+
+  self.DS4CheckTimer.enabled := true;
+end;
 
 { ---------------------------------------------------------------------------
   Timer: Check for configuration file changes
@@ -337,6 +467,15 @@ begin
       self.configCheckTimer.enabled := false;
     end;
   end;
+
+  if _settings.dualshock4_enabled then begin
+    self.DS4CheckTimer := tltimer.Create(nil);
+    self.DS4CheckTimer.onTimer := self.DS4CheckTimerEvent;
+    self.DS4CheckTimer.interval := _settings.dualshock4_poll_interval * 1000;
+    self.DS4CheckTimer.enabled := false;
+  end;
+
+  self.DS4BlinkState := false;
 end;
 
 { ----------------------------------------------------------------------------
@@ -393,22 +532,40 @@ begin
   if _settings.gpio_useresetbutton then begin
     writeln('tdaemon: Monitoring the reset button.');
   end;
-
-  self.lastConfigCheckTime := unixtimeint;
+  if _settings.dualshock4_enabled then begin
+    writeln('tdaemon: Monitoring DualShock 4 controllers.');
+  end;
 
   // Enable timers
   self.buttonCheckTimer.enabled := true;
   if assigned(self.configCheckTimer) then begin
+    self.lastConfigCheckTime := unixtimeint;
     self.configCheckTimer.enabled := true;
   end;
+  if assigned(self.DS4CheckTimer) then begin
+    self.DS4CheckTimer.enabled := true;
+  end;
 
+  // Enter lcore message loop (will not return until the daamon shuts down)
   messageloop;
 
   // Disable timers
-  if assigned(self.configCheckTimer) then begin
-    self.configCheckTimer.enabled := false;
+  if assigned(self.DS4CheckTimer) then begin
+    self.DS4CheckTimer.onTimer := nil;
+    self.DS4CheckTimer.enabled := false;
+    self.DS4CheckTimer.release;
+    self.DS4CheckTimer := nil;
   end;
+  if assigned(self.configCheckTimer) then begin
+    self.configCheckTimer.onTimer := nil;
+    self.configCheckTimer.enabled := false;
+    self.configCheckTimer.release;
+    self.configCheckTimer := nil;
+  end;
+  self.buttonCheckTimer.onTimer := nil;
   self.buttonCheckTimer.enabled := false;
+  self.buttonCheckTimer.release;
+  self.buttonCheckTimer := nil;
 end;
 
 { ----------------------------------------------------------------------------
