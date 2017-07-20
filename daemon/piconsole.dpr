@@ -68,7 +68,8 @@ begin
     _daemon := tdaemon.Create;
     writeln('Starting daemon loop');
     _daemon.RunDaemon;
-    writeln('Daemon loop stopped.');
+    writeln('Daemon loop stopped - requesting system shutdown');
+    _daemon.StartShutdown;
     freeandnil(_daemon);
   except
     on E: Exception do

@@ -1,0 +1,8 @@
+[Unit]
+Description=PiConsole daemon
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/piconsole/start.sh
+[Install]
+WantedBy=multi-user.target

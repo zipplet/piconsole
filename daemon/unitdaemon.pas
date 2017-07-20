@@ -52,12 +52,12 @@ type
 
       procedure CheckConfigurationChangesSince(ts: tunixtimeint);
       procedure CloseRetroarch;
-      procedure StartShutdown;
       procedure PollDualshock4Controllers;
       procedure SetDualshock4Color(deviceName: ansistring; red, green, blue: longint);
     public
       procedure FixControllerConfigurationFiles;
 
+      procedure StartShutdown;
       procedure RunDaemon;
       constructor Create;
       destructor Destroy; override;
@@ -232,9 +232,7 @@ begin
       if _settings.controller_disablehotkeys and _settings.controller_fix_at_shutdown then begin
         self.FixControllerConfigurationFiles;
       end;
-      write('tdaemon: Starting shutdown process: ');
-      self.StartShutdown;
-      writeln('tdaemon: Done');
+      write('tdaemon: Starting shutdown process.');
       exitmessageloop;
       exit;
     end;
@@ -273,7 +271,7 @@ var
 begin
   try
     process := tprocess.Create(nil);
-    process.executable := '/sbin/poweroff';
+    process.executable := '/opt/piconsole/mypoweroff.sh';
     process.execute;
     process.WaitOnExit;
     freeandnil(process);
