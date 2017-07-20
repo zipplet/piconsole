@@ -25,9 +25,6 @@ interface
 
 uses sysutils, classes;
 
-const
-  DEFAULT_CONFIGFILE_NAME = 'config.ini';
-
 type
   rSettings = record
     // other
@@ -59,14 +56,11 @@ type
     controller_check_interval: longint;
   end;
 
-var
-  _settings: rSettings;
-
 function ReadSettings: boolean;
 
 implementation
 
-uses inifiles;
+uses inifiles, unitglobal;
 
 { ----------------------------------------------------------------------------
   Read all configuration settings. Returns True on success.
