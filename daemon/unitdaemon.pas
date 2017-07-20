@@ -235,7 +235,7 @@ begin
       write('tdaemon: Starting shutdown process: ');
       self.StartShutdown;
       writeln('tdaemon: Done');
-      exitmessageloop;
+      // Let godaemon shut us down
       exit;
     end;
   end;

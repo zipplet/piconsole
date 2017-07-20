@@ -139,13 +139,13 @@ systempath=0
 
 # When stopping a task, godaemon will send SIGTERM. How long should godaemon
 # wait for the task (in seconds) to stop before reporting failure or giving up?
-stoptimeout=10
+stoptimeout=1
 
 # If the task fails to stop within the timeout, do you want godaemon to
 # forcefully stop the task automatically?
 # Note that even if you don't enable this, you can always use the force-stop
 # action which has the same effect.
-forcestop=0
+forcestop=1
 
 ##############################################################################
 # Configure environment variables
