@@ -32,6 +32,8 @@ by providing:
 * Later, a script to recompile the Raspberry Pi kernel and modules to enable force-feedback for supported controllers / controller-to-USB adaptors
   * It is disabled by default, probably for maximum compatibility with poor power supplies.
   * Please use a good power supply!
+* Sony DualShock 4 lightbar color enhancement
+  * If you are using native DS4 support in newer kernels rather than ds4drv, this will allow you to change the lightbar color depending on battery charge level, etc.
 
 See it in action here, being constructed inside an old PlayStation: https://www.youtube.com/playlist?list=PLqM2eWK6z3M0DvGwcI3AX9BVud6s98hcG
 
