@@ -41,7 +41,6 @@ type
       gpiodriver: trpiGPIO;
       buttonCheckTimer: tltimer;
       configCheckTimer: tltimer;
-      stopDaemon: boolean;
       lastConfigCheckTime: tunixtimeint;
 
       // Timer events
@@ -106,7 +105,7 @@ begin
       write('tdaemon: Starting shutdown process: ');
       self.StartShutdown;
       writeln('tdaemon: Done');
-      self.stopDaemon := true;
+      exitmessageloop;
       exit;
     end;
   end;
@@ -199,8 +198,8 @@ begin
   end;
   FindClose(fileinfo);
   if needfix then begin
-    writeln('Found changed controller configuration files.');
-    FixControllerConfigurations;
+    writeln('tdaemon: Found changed controller configuration files.');
+    self.FixControllerConfigurationFiles;
   end;
 end;
 
@@ -338,8 +337,6 @@ begin
       self.configCheckTimer.enabled := false;
     end;
   end;
-
-  self.stopDaemon := false;
 end;
 
 { ----------------------------------------------------------------------------
@@ -405,11 +402,7 @@ begin
     self.configCheckTimer.enabled := true;
   end;
 
-  repeat
-    // Poll for messages
-    processmessages;
-    sleep(1);
-  until self.stopDaemon;
+  messageloop;
 
   // Disable timers
   if assigned(self.configCheckTimer) then begin

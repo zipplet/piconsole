@@ -54,6 +54,19 @@ type
     controller_fix_at_shutdown: boolean;
     controller_fix_regularly: boolean;
     controller_check_interval: longint;
+
+    // dualshock4
+    dualshock4_enabled: boolean;
+    dualshock4_poll_interval: longint;
+    dualshock4_battery_low_warning: boolean;
+    dualshock4_battery_warning_below: longint;
+    dualshock4_battery_low_blinkrate: longint;
+    dualshock4_battery_low_color_red: longint;
+    dualshock4_battery_low_color_green: longint;
+    dualshock4_battery_low_color_blue: longint;
+    dualshock4_static_color_red: longint;
+    dualshock4_static_color_green: longint;
+    dualshock4_static_color_blue: longint;
   end;
 
 function ReadSettings: boolean;
@@ -100,6 +113,18 @@ begin
     _settings.controller_fix_regularly := inifile.ReadBool('controller', 'fix_regularly', false);
     _settings.controller_check_interval := inifile.ReadInteger('controller', 'check_interval', -1);
 
+    _settings.dualshock4_enabled := inifile.ReadBool('dualshock4', 'enabled', false);
+    _settings.dualshock4_poll_interval := inifile.ReadInteger('dualshock4', 'poll_interval', -1);
+    _settings.dualshock4_battery_low_warning := inifile.ReadBool('dualshock4', 'battery_low_warning', false);
+    _settings.dualshock4_battery_warning_below := inifile.ReadInteger('dualshock4', 'battery_warning_below', -1);
+    _settings.dualshock4_battery_low_blinkrate := inifile.ReadInteger('dualshock4', 'battery_low_blinkrate', -1);
+    _settings.dualshock4_battery_low_color_red := inifile.ReadInteger('dualshock4', 'battery_low_color_red', -1);
+    _settings.dualshock4_battery_low_color_green := inifile.ReadInteger('dualshock4', 'battery_low_color_green', -1);
+    _settings.dualshock4_battery_low_color_blue := inifile.ReadInteger('dualshock4', 'battery_low_color_blue', -1);
+    _settings.dualshock4_static_color_red := inifile.ReadInteger('dualshock4', 'static_color_red', -1);
+    _settings.dualshock4_static_color_green := inifile.ReadInteger('dualshock4', 'static_color_green', -1);
+    _settings.dualshock4_static_color_blue := inifile.ReadInteger('dualshock4', 'static_color_blue', -1);
+
     // Now validate them
     if _settings.system_ondelay = -1 then begin
       raise exception.Create('system / ondelay is missing');
@@ -128,6 +153,49 @@ begin
       end;
       if not directoryexists(_settings.controller_configdir) then begin
         raise exception.Create('Error: The controller configuration directory does not exist: ' + _settings.controller_configdir);
+        exit;
+      end;
+    end;
+
+    if _settings.dualshock4_enabled then begin
+      if _settings.dualshock4_poll_interval = -1 then begin
+        raise exception.Create('dualshock4 / poll_interval is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
+        exit;
+      end;
+
+      if _settings.dualshock4_battery_low_warning then begin
+        if _settings.dualshock4_battery_warning_below = -1 then begin
+          raise exception.Create('dualshock4 / battery_warning_below is missing (if you do not want to use this functionality, set dualshock4 / battery_low_warning to 0)');
+          exit;
+        end;
+        if _settings.dualshock4_battery_low_blinkrate = -1 then begin
+          raise exception.Create('dualshock4 / battery_low_blinkrate is missing (if you do not want to use this functionality, set dualshock4 / battery_low_warning to 0)');
+          exit;
+        end;
+        if _settings.dualshock4_battery_low_color_red = -1 then begin
+          raise exception.Create('dualshock4 / battery_low_color_red is missing (if you do not want to use this functionality, set dualshock4 / battery_low_warning to 0)');
+          exit;
+        end;
+        if _settings.dualshock4_battery_low_color_green = -1 then begin
+          raise exception.Create('dualshock4 / battery_low_color_green is missing (if you do not want to use this functionality, set dualshock4 / battery_low_warning to 0)');
+          exit;
+        end;
+        if _settings.dualshock4_battery_low_color_blue = -1 then begin
+          raise exception.Create('dualshock4 / battery_low_color_blue is missing (if you do not want to use this functionality, set dualshock4 / battery_low_warning to 0)');
+          exit;
+        end;
+      end;
+
+      if _settings.dualshock4_static_color_red = -1 then begin
+        raise exception.Create('dualshock4 / static_color_red is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
+        exit;
+      end;
+      if _settings.dualshock4_static_color_green = -1 then begin
+        raise exception.Create('dualshock4 / static_color_green is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
+        exit;
+      end;
+      if _settings.dualshock4_static_color_blue = -1 then begin
+        raise exception.Create('dualshock4 / static_color_blue is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
         exit;
       end;
     end;
