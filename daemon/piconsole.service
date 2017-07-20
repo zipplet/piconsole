@@ -4,5 +4,6 @@ Description=PiConsole daemon
 Type=simple
 User=root
 ExecStart=/opt/piconsole/start.sh
+TimeoutStopSec=3
 [Install]
 WantedBy=multi-user.target
