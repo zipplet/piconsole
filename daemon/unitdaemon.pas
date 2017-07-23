@@ -139,6 +139,7 @@ var
   t: textfile;
   s, fullpath: ansistring;
   batteryCharge: longint;
+  wasLowBattery: boolean;
 begin
   try
     // Get the battery charge of each controller, plus the real device name
@@ -149,10 +150,20 @@ begin
     readln(t, s);
     closefile(t);
     self.ds4controller[deviceID].batteryLevel := strtoint(s);
+    wasLowBattery := self.ds4controller[deviceID].lowBattery;
     self.ds4controller[deviceID].lowBattery := false;
     if _settings.dualshock4_battery_low_warning then begin
       if self.ds4controller[deviceID].batteryLevel <= _settings.dualshock4_battery_warning_below then begin
         self.ds4controller[deviceID].lowBattery := true;
+      end else begin
+        // Has the battery recovered since we last checked it?
+        if wasLowBattery then begin
+          // Yes. Make sure the lightbar colour is correct.
+          self.SetDualshock4Color(deviceID,
+                                  self.ds4controller[deviceID].lightbar_red,
+                                  self.ds4controller[deviceID].lightbar_green,
+                                  self.ds4controller[deviceID].lightbar_blue);
+        end;
       end;
     end;
   except
