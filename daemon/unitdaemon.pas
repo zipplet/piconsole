@@ -1,7 +1,7 @@
 { ----------------------------------------------------------------------------
   piconsole - The Raspberry Pi retro videogame console project
   Copyright (C) 2017  Michael Andrew Nixon
-  
+
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -34,7 +34,25 @@ uses
   unitconfig,
   rpigpio;
 
+// Yes it could be done neater by using a linked list or so, but since we will
+// never have many DS4 controllers attached, a static limit and array is fine.
+// If we exceed this many controllers, the new ones will just not be monitored.
+const
+  MAX_DS4_CONTROLLERS = 8;        // Should never need more than this...
+
 type
+  rDualShock4 = record
+    deviceName: shortstring;      // DS4 device name ("xxxx:xxxx:xxxx.xxxx")
+    batteryName: shortstring;     // DS4 battery name ("sony_controller_battery_xx:xx:xx:xx:xx:xx")
+    batteryLevel: longint;        // Battery charge in %
+    lowBattery: boolean;          // True if low battery
+    blinkState: boolean;          // Toggles to alter lightbar colour
+    lightbar_red: longint;        // LB colour for non-low battery: red
+    lightbar_green: longint;      // LB colour for non-low battery: green
+    lightbar_blue: longint;       // LB colour for non-low battery: blue
+    attached: boolean;            // True if controller is present
+  end;
+
   tdaemon = class(tobject)
     private
     protected
@@ -42,18 +60,25 @@ type
       buttonCheckTimer: tltimer;
       configCheckTimer: tltimer;
       DS4CheckTimer: tltimer;
+      DS4BatteryLowTimer: tltimer;
       lastConfigCheckTime: tunixtimeint;
-      DS4BlinkState: boolean;
+      DS4BatteryPollCounter: longint;
+
+      ds4controller: array[0..MAX_DS4_CONTROLLERS - 1] of rDualShock4;
 
       // Timer events
       procedure DS4CheckTimerEvent(Sender: TObject);
       procedure ButtonCheckTimerEvent(Sender: TObject);
       procedure ConfigCheckTimerEvent(Sender: TObject);
+      procedure DS4BatteryLowTimerEvent(Sender: TObject);
 
       procedure CheckConfigurationChangesSince(ts: tunixtimeint);
       procedure CloseRetroarch;
       procedure PollDualshock4Controllers;
-      procedure SetDualshock4Color(deviceName: ansistring; red, green, blue: longint);
+      procedure SetDualshock4Color(deviceID: longint; red, green, blue: longint);
+      function FindDS4ControllerByDeviceName(deviceName: ansistring): longint;
+      function GetFreeDS4ControllerID: longint;
+      procedure CheckDS4Battery(deviceID: longint);
     public
       procedure FixControllerConfigurationFiles;
 
@@ -68,115 +93,250 @@ implementation
 uses process, unitglobal;
 
 { ---------------------------------------------------------------------------
-  Set the colour of a DualShock 4 lightbar to the given RGB values.
+  DS4 battery low blink timer event
   --------------------------------------------------------------------------- }
-procedure tdaemon.SetDualshock4Color(deviceName: ansistring; red, green, blue: longint);
+procedure tdaemon.DS4BatteryLowTimerEvent(Sender: TObject);
 var
-  t: textfile;
+  i: longint;
 begin
-  filemode := fmOpenWrite;
-  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_RED_LED);
-  rewrite(t);
-  writeln(t, inttostr(red));
-  closefile(t);
+  self.DS4BatteryLowTimer.enabled := false;
 
-  filemode := fmOpenWrite;
-  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_GREEN_LED);
-  rewrite(t);
-  writeln(t, inttostr(green));
-  closefile(t);
+  for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+    if self.ds4controller[i].attached then begin
+      // Low battery?
+      if self.ds4controller[i].lowBattery then begin
+        // Yup. Toggle the blink flag
+        if self.ds4controller[i].blinkState then begin
+          self.ds4controller[i].blinkState := false;
+        end else begin
+          self.ds4controller[i].blinkState := true;
+        end;
+        // Now assign the appropriate colour
+        if self.ds4controller[i].blinkState then begin
+          self.SetDualshock4Color(i,
+                                  _settings.dualshock4_battery_low_color_red,
+                                  _settings.dualshock4_battery_low_color_green,
+                                  _settings.dualshock4_battery_low_color_blue);
+        end else begin
+          self.SetDualshock4Color(i,
+                                  self.ds4controller[i].lightbar_red,
+                                  self.ds4controller[i].lightbar_green,
+                                  self.ds4controller[i].lightbar_blue);
+        end;
+      end;
+    end;
+  end;
 
-  filemode := fmOpenWrite;
-  assignfile(t, SYSTEM_LED_PATH + deviceName + DUALSHOCK4_BLUE_LED);
-  rewrite(t);
-  writeln(t, inttostr(blue));
-  closefile(t);
+  self.DS4BatteryLowTimer.enabled := true;
 end;
 
 { ---------------------------------------------------------------------------
-  Called to poll DualShock 4 controllers.
-  We will set the correct lightbar colours on each controller.
+  Check the battery state of the DS4 controller ID passed, and set the low
+  battery flag if required (or clear it if the battery is OK).
+  --------------------------------------------------------------------------- }
+procedure tdaemon.CheckDS4Battery(deviceID: longint);
+var
+  t: textfile;
+  s, fullpath: ansistring;
+  batteryCharge: longint;
+begin
+  try
+    // Get the battery charge of each controller, plus the real device name
+    fullpath := SYSTEM_POWER_PATH + self.ds4controller[deviceID].batteryName + DUALSHOCK4_BATTERY_CHARGE;
+    filemode := fmOpenRead;
+    assignfile(t, fullpath);
+    reset(t);
+    readln(t, s);
+    closefile(t);
+    self.ds4controller[deviceID].batteryLevel := strtoint(s);
+    self.ds4controller[deviceID].lowBattery := false;
+    if _settings.dualshock4_battery_low_warning then begin
+      if self.ds4controller[deviceID].batteryLevel <= _settings.dualshock4_battery_warning_below then begin
+        self.ds4controller[deviceID].lowBattery := true;
+      end;
+    end;
+  except
+    on e: exception do begin
+      try
+        closefile(t);
+      except
+        on e: exception do begin
+          // Swallow
+        end;
+      end;
+      // Swallow the exception. Maybe dump debugging output, but I don't
+      // want to fill the RAM disk or wear out the SD card.
+    end;
+  end;
+end;
+
+{ ---------------------------------------------------------------------------
+  Find the first free device ID and return it.
+  Returns -1 if we cannot find one.
+  --------------------------------------------------------------------------- }
+function tdaemon.GetFreeDS4ControllerID: longint;
+var
+  i: longint;
+begin
+  for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+    if self.ds4controller[i].attached = false then begin
+      result := i;
+      exit;
+    end;
+  end;
+  result := -1;
+end;
+
+{ ---------------------------------------------------------------------------
+  Find the index of a DS4 controller given the device name.
+  Returns -1 if we cannot find it.
+  --------------------------------------------------------------------------- }
+function tdaemon.FindDS4ControllerByDeviceName(deviceName: ansistring): longint;
+var
+  i: longint;
+begin
+  for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+    if self.ds4controller[i].deviceName = deviceName then begin
+      result := i;
+      exit;
+    end;
+  end;
+  result := -1;
+end;
+
+{ ---------------------------------------------------------------------------
+  Set the colour of a DualShock 4 lightbar to the given RGB values.
+  --------------------------------------------------------------------------- }
+procedure tdaemon.SetDualshock4Color(deviceID: longint; red, green, blue: longint);
+var
+  t: textfile;
+  s: ansistring;
+begin
+  try
+    s := SYSTEM_LED_PATH + self.ds4controller[deviceID].deviceName + DUALSHOCK4_RED_LED;
+    // Check if controller vanished and bail; will be caught on next poll loop
+    if not fileexists(s) then exit;
+    filemode := fmOpenWrite;
+    assignfile(t, s);
+    rewrite(t);
+    writeln(t, inttostr(red));
+    closefile(t);
+
+    s := SYSTEM_LED_PATH + self.ds4controller[deviceID].deviceName + DUALSHOCK4_GREEN_LED;
+    // Check if controller vanished and bail; will be caught on next poll loop
+    if not fileexists(s) then exit;
+    filemode := fmOpenWrite;
+    assignfile(t, s);
+    rewrite(t);
+    writeln(t, inttostr(green));
+    closefile(t);
+
+    s := SYSTEM_LED_PATH + self.ds4controller[deviceID].deviceName + DUALSHOCK4_BLUE_LED;
+    // Check if controller vanished and bail; will be caught on next poll loop
+    if not fileexists(s) then exit;
+    filemode := fmOpenWrite;
+    assignfile(t, s);
+    rewrite(t);
+    writeln(t, inttostr(blue));
+    closefile(t);
+  except
+    on e: exception do begin
+      // Controller vanished while accessing it
+      try
+        // Make sure we don't leak fds
+        closefile(t);
+      except
+        on e: exception do begin
+          // Shouldn't happen. Swallow it
+        end;
+      end;
+    end;
+  end;
+end;
+
+{ ---------------------------------------------------------------------------
+  Called to poll DualShock 4 controllers (look for new controllers).
   --------------------------------------------------------------------------- }
 procedure tdaemon.PollDualshock4Controllers;
 var
   fileinfo: tsearchrec;
   s, fullpath: ansistring;
-  t: textfile;
-  batteryCharge: longint;
   realDevice: ansistring;
   i: longint;
   lowBattery: boolean;
-  fastTimer: boolean;
+  deviceIndex: longint;
 begin
-  // Toggle blink state
-  if self.DS4BlinkState then begin
-    self.DS4BlinkState := false;
-  end else begin
-    self.DS4BlinkState := true;
-  end;
-
-  fastTimer := false;
-
+  // Look through all DS4 devices attached to the system, and add controllers
+  // as necessary to the internal list.
   if FindFirst(SYSTEM_POWER_PATH + DUALSHOCK4_BATTERY_SEARCH_MASK, faDirectory, fileinfo) = 0 then begin
     repeat
-      try
-        // Get the battery charge of each controller, plus the real device name
-        fullpath := SYSTEM_POWER_PATH + fileinfo.name + DUALSHOCK4_BATTERY_CHARGE;
-        filemode := fmOpenRead;
-        assignfile(t, fullpath);
-        reset(t);
-        readln(t, s);
-        closefile(t);
-        batteryCharge := strtoint(s);
-        fullpath := SYSTEM_POWER_PATH + fileinfo.name + DUALSHOCK4_REAL_DEVICE;
-        s := fpReadLink(fullpath);
-        realDevice := '';
-        // We need to hunt backwards for the '/'
+      fullpath := SYSTEM_POWER_PATH + fileinfo.name + DUALSHOCK4_REAL_DEVICE;
+      // fpReadLink might fail if the controller goes away while checking!
+      s := fpReadLink(fullpath);
+      realDevice := '';
+      if s <> '' then begin
+        // We need to hunt backwards for the '/' to get the real device name
         for i := length(s) downto 1 do begin
           if s[i] = '/' then begin
             realDevice := copy(s, i + 1, length(s) - i);
             break;
           end;
         end;
-        if realDevice <> '' then begin
-          // We have the device name in <realDevice> and charge in <batteryCharge>
-          lowBattery := false;
-          if _settings.dualshock4_battery_low_warning then begin
-            if batteryCharge <= _settings.dualshock4_battery_warning_below then begin
-              lowBattery := true;
-              fastTimer := true;
-            end;
-          end;
-          if self.DS4BlinkState and lowBattery then begin
-            self.SetDualshock4Color(realDevice,
-                                    _settings.dualshock4_battery_low_color_red,
-                                    _settings.dualshock4_battery_low_color_green,
-                                    _settings.dualshock4_battery_low_color_blue);
+      end;
+      // If we have a real device name, then check if we know about it.
+      if realDevice <> '' then begin
+        // See if we already know about this controller
+        deviceIndex := self.FindDS4ControllerByDeviceName(realDevice);
+        if deviceIndex = -1 then begin
+          // New device!
+          deviceIndex := self.GetFreeDS4ControllerID;
+          if deviceIndex <> -1 then begin
+            // Got a device ID to store information about it under.
+            self.ds4controller[deviceIndex].deviceName := realDevice;
+            self.ds4controller[deviceIndex].batteryName := fileinfo.name;
+            self.ds4controller[deviceIndex].batteryLevel := -1;
+            self.ds4controller[deviceIndex].lowBattery := false;
+            self.ds4controller[deviceIndex].attached := true;
+            // Currently all controllers are assigned the same colour
+            self.ds4controller[deviceIndex].lightbar_red := _settings.dualshock4_static_color_red;
+            self.ds4controller[deviceIndex].lightbar_green := _settings.dualshock4_static_color_green;
+            self.ds4controller[deviceIndex].lightbar_blue := _settings.dualshock4_static_color_blue;
+            // Set DS4 colour appropriately
+            self.SetDualshock4Color(deviceIndex,
+                                    self.ds4controller[deviceIndex].lightbar_red,
+                                    self.ds4controller[deviceIndex].lightbar_green,
+                                    self.ds4controller[deviceIndex].lightbar_blue);
+            // Perform the low battery check immediately as this is a new controller
+            self.CheckDS4Battery(deviceIndex);
           end else begin
-            self.SetDualshock4Color(realDevice,
-                                    _settings.dualshock4_static_color_red,
-                                    _settings.dualshock4_static_color_green,
-                                    _settings.dualshock4_static_color_blue);
+            // Should never happen, some kind of error log?
           end;
-        end;
-      except
-        on e: exception do begin
-          closefile(t);
-          // Swallow the exception. Maybe dump debugging output, but I don't
-          // want to fill the RAM disk or wear out the SD card.
         end;
       end;
     until FindNext(fileinfo) <> 0;
   end;
   FindClose(fileinfo);
 
-  if fastTimer then begin
-    // Increase timer poll rate temporarily to allow LED flashing
-    // Yes I could use more timers, but this works.
-    self.DS4CheckTimer.interval := _settings.dualshock4_battery_low_blinkrate;
-  end else begin
-    // Increase timer poll rate as we have no controllers with a low battery
-    self.DS4CheckTimer.interval := _settings.dualshock4_poll_interval * 1000;
+  // Now do the inverse, check if all known DS4 controllers still exist.
+  for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+    if self.ds4controller[i].attached then begin
+      if not fileexists(SYSTEM_POWER_PATH + self.ds4controller[i].batteryName + DUALSHOCK4_BATTERY_CHARGE) then begin
+        // Controller vanished
+        self.ds4controller[i].attached := false;
+      end;
+    end;
+  end;
+
+  // Count up towards the next battery check for all attached DS4 controllers
+  inc(self.DS4BatteryPollCounter);
+  if self.DS4BatteryPollCounter >= _settings.dualshock4_battery_check_interval then begin
+    // Check the battery levels of all DS4 controllers
+    for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+      if self.ds4controller[i].attached then begin
+        self.CheckDS4Battery(i);
+      end;
+    end;
+    self.DS4BatteryPollCounter := 0;
   end;
 end;
 
@@ -442,6 +602,8 @@ end;
   tdaemon constructor
   ---------------------------------------------------------------------------- }
 constructor tdaemon.Create;
+var
+  i: longint;
 begin
   inherited Create;
 
@@ -471,9 +633,16 @@ begin
     self.DS4CheckTimer.onTimer := self.DS4CheckTimerEvent;
     self.DS4CheckTimer.interval := _settings.dualshock4_poll_interval * 1000;
     self.DS4CheckTimer.enabled := false;
+    self.DS4BatteryLowTimer := tltimer.Create(nil);
+    self.DS4BatteryLowTimer.onTimer := self.DS4BatteryLowTimerEvent;
+    self.DS4BatteryLowTimer.interval := _settings.dualshock4_battery_low_blinkrate;
+    self.DS4BatteryLowTimer.enabled := false;
   end;
 
-  self.DS4BlinkState := false;
+  for i := 0 to MAX_DS4_CONTROLLERS - 1 do begin
+    self.ds4controller[i].attached := false;
+  end;
+  self.DS4BatteryPollCounter := 0;
 end;
 
 { ----------------------------------------------------------------------------
@@ -543,11 +712,20 @@ begin
   if assigned(self.DS4CheckTimer) then begin
     self.DS4CheckTimer.enabled := true;
   end;
+  if assigned(self.DS4BatteryLowTimer) then begin
+    self.DS4BatteryLowTimer.enabled := true;
+  end;
 
   // Enter lcore message loop (will not return until the daamon shuts down)
   messageloop;
 
   // Disable timers
+  if assigned(self.DS4BatteryLowTimer) then begin
+    self.DS4BatteryLowTimer.onTimer := nil;
+    self.DS4BatteryLowTimer.enabled := false;
+    self.DS4BatteryLowTimer.release;
+    self.DS4BatteryLowTimer := nil;
+  end;
   if assigned(self.DS4CheckTimer) then begin
     self.DS4CheckTimer.onTimer := nil;
     self.DS4CheckTimer.enabled := false;

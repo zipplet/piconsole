@@ -58,6 +58,7 @@ type
     // dualshock4
     dualshock4_enabled: boolean;
     dualshock4_poll_interval: longint;
+    dualshock4_battery_check_interval: longint;
     dualshock4_battery_low_warning: boolean;
     dualshock4_battery_warning_below: longint;
     dualshock4_battery_low_blinkrate: longint;
@@ -115,6 +116,7 @@ begin
 
     _settings.dualshock4_enabled := inifile.ReadBool('dualshock4', 'enabled', false);
     _settings.dualshock4_poll_interval := inifile.ReadInteger('dualshock4', 'poll_interval', -1);
+    _settings.dualshock4_battery_check_interval := inifile.ReadInteger('dualshock4', 'battery_check_interval', -1);
     _settings.dualshock4_battery_low_warning := inifile.ReadBool('dualshock4', 'battery_low_warning', false);
     _settings.dualshock4_battery_warning_below := inifile.ReadInteger('dualshock4', 'battery_warning_below', -1);
     _settings.dualshock4_battery_low_blinkrate := inifile.ReadInteger('dualshock4', 'battery_low_blinkrate', -1);
@@ -160,6 +162,11 @@ begin
     if _settings.dualshock4_enabled then begin
       if _settings.dualshock4_poll_interval = -1 then begin
         raise exception.Create('dualshock4 / poll_interval is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
+        exit;
+      end;
+
+      if _settings.dualshock4_battery_check_interval = -1 then begin
+        raise exception.Create('dualshock4 / battery_check_interval is missing (if you do not want to use this functionality, set dualshock4 / enabled to 0)');
         exit;
       end;
 
