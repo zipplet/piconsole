@@ -1,0 +1,6 @@
+TinyCAD is required to open the schematics.
+https://sourceforge.net/projects/tinycad/
+
+See LICENSE for important license information.
+
+All MOSFETs are logic level, and if you use the dual rail version you MUST be very careful about the gate threshold voltage.
