@@ -4,3 +4,10 @@ https://sourceforge.net/projects/tinycad/
 See LICENSE for important license information.
 
 All MOSFETs are logic level, and if you use the dual rail version you MUST be very careful about the gate threshold voltage.
+
+DC-DC converters are required in many cases. For the dual rail version (PS1 PSU usage), you need 2:
+ - 1) For the fan power supply, to step up the 3.5V rail to whatever you need to run the fan properly
+ - 2) For the Pi power supply, to step down the 8V supply to 5V
+Make sure that the DC-DC supply is clean, add extra decoupling as necessary. More doesn't hurt.
+
+Do NOT connect 8V directly to the Pi!
