@@ -300,7 +300,9 @@ fi
 
 echo "${GREEN}Unpacking kernel files to a temporary location...${NC}"
 mkdir temp
-tar -zxf $KERNELFILE temp/
+cd temp
+tar -zxf $KERNELFILE
+cd ..
 if [ ! -d "temp/boot" ]; then
   echo "${RED}Could not find the unpacked boot files for the new kernel; unpack failed?${NC}"
   echo "Cleaning up..."
