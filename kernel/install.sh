@@ -330,10 +330,10 @@ cp temp/boot/*.dtb /boot/
 cp temp/boot/overlays/* /boot/overlays/
 
 echo "${GREEN}Copying the new kernel into /boot...${NC}"
-cp temp/boot/$KERNELFILENAME /boot/$KERNALNAME
+cp temp/boot/$KERNELFILENAME /boot/$KERNELNAME
 
 echo "${GREEN}Patching /boot/config.txt to boot the new kernel...${NC}"
-echo "kernel=${KERNALNAME}" >> /boot/config.txt
+echo "kernel=${KERNELNAME}" >> /boot/config.txt
 
 echo "${GREEN}All done. Please reboot to use the new kernel.${NC}"
 
