@@ -21,10 +21,10 @@
 #
 
 # Kernel files
-KERNEL_OLD='../kernels/piconsole-kernel-4.11.11.tar.gz'
+KERNEL_OLD='piconsole-kernel-4.11.11.tar.gz'
 KERNELNAME_OLD='piconsole-4.11.11.img'
 KERNELFILENAME_OLD='kernel.img'
-KERNEL_NEW='../kernels/piconsole-kernel-4.11.11-v7.tar.gz'
+KERNEL_NEW='piconsole-kernel-4.11.11-v7.tar.gz'
 KERNELNAME_NEW='piconsole-4.11.11-v7.img'
 KERNELFILENAME_NEW='kernel7.img'
 
@@ -293,15 +293,15 @@ if [ ! "$ANSWER" = "y" ]; then
   exit 1
 fi
 
-if [ ! -f "${KERNELFILE}" ]; then
-  echo "${RED}Cannot find the kernel file ${KERNELFILE} - Run this script from its own directory!${NC}"
+if [ ! -f "kernels/${KERNELFILE}" ]; then
+  echo "${RED}Cannot find the kernel file kernels/${KERNELFILE} - Run this script from its own directory!${NC}"
   exit 1
 fi
 
 echo "${GREEN}Unpacking kernel files to a temporary location...${NC}"
 mkdir temp
 cd temp
-tar -zxf $KERNELFILE
+tar -zxf ../kernels/$KERNELFILE
 cd ..
 if [ ! -d "temp/boot" ]; then
   echo "${RED}Could not find the unpacked boot files for the new kernel; unpack failed?${NC}"
