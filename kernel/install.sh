@@ -241,33 +241,32 @@ case "$PIBOARDREVISION" in
     ;;
 esac
 echo "${GREEN}Board revision is ${CYAN}${PIBOARDREVISION}${NC}"
-echo
 pireport
 echo
 
 case "$PIMODEL" in
   "0")
-    KERNELFILE=KERNEL_OLD
-    KERNELNAME=KERNELNAME_OLD
-    KERNELFILENAME=KERNELFILENAME_OLD
+    KERNELFILE=$KERNEL_OLD
+    KERNELNAME=$KERNELNAME_OLD
+    KERNELFILENAME=$KERNELFILENAME_OLD
     echo "${GREEN}Debug: Using old kernel.${NC}"
     ;;
   "1")
-    KERNELFILE=KERNEL_OLD
-    KERNELNAME=KERNELNAME_OLD
-    KERNELFILENAME=KERNELFILENAME_OLD
+    KERNELFILE=$KERNEL_OLD
+    KERNELNAME=$KERNELNAME_OLD
+    KERNELFILENAME=$KERNELFILENAME_OLD
     echo "${GREEN}Debug: Using old kernel.${NC}"
     ;;
   "2")
-    KERNELFILE=KERNEL_NEW
-    KERNELNAME=KERNELNAME_NEW
-    KERNELFILENAME=KERNELFILENAME_NEW
+    KERNELFILE=$KERNEL_NEW
+    KERNELNAME=$KERNELNAME_NEW
+    KERNELFILENAME=$KERNELFILENAME_NEW
     echo "${GREEN}Debug: Using new kernel.${NC}"
     ;;
   "3")
-    KERNELFILE=KERNEL_NEW
-    KERNELNAME=KERNELNAME_NEW
-    KERNELFILENAME=KERNELFILENAME_NEW
+    KERNELFILE=$KERNEL_NEW
+    KERNELNAME=$KERNELNAME_NEW
+    KERNELFILENAME=$KERNELFILENAME_NEW
     echo "${GREEN}Debug: Using new kernel.${NC}"
     ;;
   *)
@@ -275,8 +274,6 @@ case "$PIMODEL" in
     ;;
 esac
 
-echo
-echo
 echo "${GREEN}Before proceeding, please confirm the following:${NC}"
 echo "${YELLOW}1) You have not already installed a custom kernel.${NC}"
 echo "${YELLOW}2) You have taken a backup of your SD card.${NC}"
