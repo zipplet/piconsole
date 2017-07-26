@@ -335,6 +335,9 @@ cp temp/boot/$KERNELFILENAME /boot/$KERNELNAME
 echo "${GREEN}Patching /boot/config.txt to boot the new kernel...${NC}"
 echo "kernel=${KERNELNAME}" >> /boot/config.txt
 
+echo "${GREEN}Cleaning up...${NC}"
+rm -rf temp
+
 echo "${GREEN}All done. Please reboot to use the new kernel.${NC}"
 
 exit 0
