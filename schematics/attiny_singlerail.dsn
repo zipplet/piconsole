@@ -49,6 +49,16 @@ download the executable.-->
 			<CHARSET>0</CHARSET>
 			<FACENAME>Arial</FACENAME>
 		</FONT>
+		<FONT id='5'>
+			<HEIGHT>-13</HEIGHT>
+			<WIDTH>6</WIDTH>
+			<WEIGHT>700</WEIGHT>
+			<ITALIC>0</ITALIC>
+			<UNDERLINE>0</UNDERLINE>
+			<STRIKEOUT>0</STRIKEOUT>
+			<CHARSET>0</CHARSET>
+			<FACENAME>Arial</FACENAME>
+		</FONT>
 		<STYLE id='4'>
 			<STYLE>0</STYLE>
 			<COLOR>000000</COLOR>
@@ -1144,5 +1154,6 @@ download the executable.-->
 		<WIRE a='148.00000,60.00000' b='208.00000,60.00000'/>
 		<WIRE a='208.00000,60.00000' b='208.00000,31.00000'/>
 		<WIRE a='208.00000,31.00000' b='222.00000,31.00000'/>
+		<TEXT pos='188.00000,14.00000' direction='3' font='5' color='000000'>Level shifting required!</TEXT>
 	</TinyCAD>
 </TinyCADSheets>
