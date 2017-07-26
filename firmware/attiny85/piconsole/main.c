@@ -64,11 +64,24 @@
 #define TRUE                0xFF
 #define FALSE               0x00
 
+// For single rail designs where we switch a P-channel MOSFET for the Pi directly without using a
+// transistor to pull it to ground, the Pi power-up signal needs to be inverted. In that case, please
+// swap the following 2 defines around. One MUST be defined.
+//#define SINGLE_RAIL_PSU
+#define DUAL_RAIL_PSU
+
 #define F_CPU               1000000     // CPU clockspeed (ATTINY default from factory w/ internal oscillator and divide by 8 fusebit)
 #define MCP_ADDRESS         0x40        // MCP23008 address
 #define MCP_DIR_MASK        0b01001000  // MCP23008 GPIO direction mask
 #define MCP_PU_MASK         0b00001000  // MCP23008 GPIO pullup mask
+
+#ifdef DUAL_RAIL_PSU
 #define MCP_GPIO_POWERUP    0b00000000  // MCP23008 GPIO initial state
+#endif
+
+#ifdef SINGLE_RAIL_PSU
+#define MCP_GPIO_POWERUP    0b00100000  // MCP23008 GPIO initial state
+#endif
 
 #define LED_BLINK_RATE      25          // LED blink rate (in 10ms units)
 #define SHUTDOWN_WAIT_TIME  800         // Time to wait after shutdown before cutting power
@@ -422,6 +435,9 @@ void MCP_init(void)
   I2C_writeDeviceRegister(MCP_ADDRESS, MCP_REG_GPIO, MCP_GPIO_POWERUP);
   // Set in/out pins
   I2C_writeDeviceRegister(MCP_ADDRESS, MCP_REG_IODIR, MCP_DIR_MASK);
+  
+  // Set _gpio cache to powerup condition
+  _gpio = MCP_GPIO_POWERUP;
 }
 
 // ----------------------------------------------------------------------------
@@ -550,7 +566,12 @@ void mainloop(void)
             // Wait for half a second for the fans
             _delay_ms(500);
             // Pi on
-            MCP_writeGPIO(_gpio | GPIO_PI_POWER);
+            #ifdef DUAL_RAIL_PSU
+              MCP_writeGPIO(_gpio | GPIO_PI_POWER);
+            #endif
+            #ifdef SINGLE_RAIL_PSU
+              MCP_writeGPIO(_gpio & (~GPIO_PI_POWER));
+            #endif
           }
         }
         break;
@@ -620,7 +641,12 @@ void mainloop(void)
           // Time to cut power
           _state = state_off;
           // Cut power to the Pi
-          MCP_writeGPIO(_gpio & (~GPIO_PI_POWER));
+          #ifdef DUAL_RAIL_PSU
+            MCP_writeGPIO(_gpio & (~GPIO_PI_POWER));
+          #endif
+          #ifdef SINGLE_RAIL_PSU
+            MCP_writeGPIO(_gpio | GPIO_PI_POWER);
+          #endif
           // Cut power to the fans
           MCP_writeGPIO(_gpio & (~GPIO_FAN_POWER));
           // Now block in a loop until the power switch has been released for at least 1 second, incase the user pressed it again
