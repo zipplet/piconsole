@@ -21,10 +21,10 @@
 #
 
 # Kernel files
-KERNEL_OLD='kernels/piconsole-kernel-4.11.11.tar.gz'
+KERNEL_OLD='../kernels/piconsole-kernel-4.11.11.tar.gz'
 KERNELNAME_OLD='piconsole-4.11.11.img'
 KERNELFILENAME_OLD='kernel.img'
-KERNEL_NEW='kernels/piconsole-kernel-4.11.11-v7.tar.gz'
+KERNEL_NEW='../kernels/piconsole-kernel-4.11.11-v7.tar.gz'
 KERNELNAME_NEW='piconsole-4.11.11-v7.img'
 KERNELFILENAME_NEW='kernel7.img'
 
