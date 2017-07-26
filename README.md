@@ -29,11 +29,12 @@ by providing:
   * You will never accidentally exit the game again!
   * I know you can disable the __global__ RetroArch hotkey in newer versions of RetroPie, but that's silly - it's a useful hotkey and without it you can no longer access RetroArch configuration in-game (select+X). This hot-patching allows you to keep the global hotkey enabled but just have the annoying hotkey combinations disabled.
   * It works on the fly, patching configuration files as they change, get created or at system startup/shutdown (configurable).
-* Later, a script to recompile the Raspberry Pi kernel and modules to enable force-feedback for supported controllers / controller-to-USB adaptors
-  * It is disabled by default, probably for maximum compatibility with poor power supplies.
-  * Please use a good power supply!
 * Sony DualShock 4 lightbar color enhancement
   * If you are using native DS4 support in newer kernels rather than ds4drv, this will allow you to change the lightbar color depending on battery charge level, etc.
+* Custom kernels with the following benefits over the current official Pi kernels:
+  * Force feedback support for as many controller adaptors as I could enable it for
+  * Support for brand new DualShock 4 controllers sold since mid 2016.
+  * Please use a good power supply!
 
 See it in action here, being constructed inside an old PlayStation: https://www.youtube.com/playlist?list=PLqM2eWK6z3M0DvGwcI3AX9BVud6s98hcG
 
@@ -44,17 +45,8 @@ See it in action here, being constructed inside an old PlayStation: https://www.
   * Compilation only tested and supported under free pascal 3.
   * Requires the rpiio library - https://github.com/zipplet/rpiio
   * Requires the lcore library - https://github.com/zipplet/lcore
-  * Supplied with and designed to be used with a copy of godaemon (godaemontask) built for ARMv6
-  * godaemon is also one of my projects and the source can be found at https://github.com/zipplet/godaemon
 
 * firmware / ATTINY85 (firmware for the control PCB without fan PWM):
   * Compiles with Atmel Studio 7.0
   * Should also fit on the smaller ATTINY chips (the code compiles to <2KB)
 
-## Coming soon
-
-* More microcontroller firmware
-* Schematics
-* Installer/etc
-* Releases so you do not need to compile anything
-* See todo.txt for more information

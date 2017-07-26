@@ -21,6 +21,7 @@
 * ATTINY85
   * Compiles with Atmel Studio 7.0
   * Probably also works on smaller ATTINY chips as the code is very small
+  * You MUST edit main.c and modify the #ifdef section near the beginning to specify which PSU design you will use, because the power-up signal is inverted for single rail.
 
 
 ## Coming soon
