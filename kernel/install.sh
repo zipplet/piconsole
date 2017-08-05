@@ -233,6 +233,14 @@ case "$PIBOARDREVISION" in
     PISUBMODEL="B"
     PIRAM="1024"
     ;;
+  "2a22082")
+    # Not sure if this is a typo of the previous (or the previous entry is wrong and this is the correct board ID)
+    # https://github.com/zipplet/piconsole/issues/1
+    PIBOARD="??? - PCB v? - Pi 3 Model B [1GB] (Manufactured by ???)"
+    PIMODEL="3"
+    PISUBMODEL="B"
+    PIRAM="1024"
+    ;;
   *)
     PIBOARD=""
     PIMODEL=""
